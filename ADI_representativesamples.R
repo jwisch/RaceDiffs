@@ -1,14 +1,11 @@
 library(tidyverse)
 library(tidycensus)
 library(dplyr)
-census_api_key("25f4f15b896d92ddbb4b02fdc8c281b9304e001b", overwrite = FALSE, install = TRUE)
+library(stringr)
+library(ggplot2)
+library(gridExtra)
 
-v17 <- load_variables(2015, "acs5", cache = TRUE)
-v17_types<-as.data.frame(table(v17$concept))
-v17[362:371,]
-v17_types[c(127, 128, 336, 781, 991),]
-v17[v17$concept == "EDUCATIONAL ATTAINMENT FOR THE POPULATION 25 YEARS AND OVER",]
-
+##############Functions for this analysis
 get_state_demographic_data <- function(the_state, the_year) {
   
   options(tigris_use_cache = TRUE) #keep chached version of data
@@ -33,19 +30,39 @@ get_state_demographic_data <- function(the_state, the_year) {
     purrr::reduce(rbind)  # bind rows of all counties
 }
 
+Get_SD<-function(RACE){
+  mean_black<-sum(vt[vt$variable == RACE, "Product"], na.rm = TRUE)/sum(vt[vt$variable == RACE, "estimate"], na.rm = TRUE)
+  Black<-vt[vt$variable == RACE, ]
+  Black$sdcalc<-(Black$ADI_NATRANK - mean_black)^2*Black$estimate
+  Black<-Black[is.na(Black$sdcalc) == FALSE,]
+  SDresult<-sqrt((sum(Black$sdcalc))/sum(Black$estimate))
+  return(SDresult)}
+
+explode <- function(x, weight_var) {
+  w <- rlang::eval_tidy(rlang::enquo(weight_var), x)
+  x[rep(seq_len(nrow(x)), w), , drop = FALSE]
+}
+#########################################
+#api key hidden for github
+census_api_key("XXX", overwrite = FALSE, install = TRUE)
+
+v17 <- load_variables(2015, "acs5", cache = TRUE)
+v17_types<-as.data.frame(table(v17$concept))
+v17[362:371,]
+v17_types[c(127, 128, 336, 781, 991),]
+v17[v17$concept == "EDUCATIONAL ATTAINMENT FOR THE POPULATION 25 YEARS AND OVER",]
+
 
 df2 <- get_state_demographic_data('MO', 2017)
 df2<-df2[df2$variable == "B02001_001" | df2$variable == "B02001_002" | df2$variable == "B02001_003",]
 
-#vt2 <- get_acs(geography = "block group", 
-              # variables = c(Total = "B02001_001", White = "B02001_002", Black = "B02001_003"),
-              # state = "MO")
+
 vt2<-as.data.frame(df2)
 vt2$GEOID <- as.numeric(vt2$GEOID) 
 vt2$GEOID<-as.character(vt2$GEOID)
 
 vt1<-read.csv("C:/Users/julie.wisch/Documents/ADRC/Mo_ADI_blockgroup.csv")
-library(stringr)
+
 vt1$fips<-str_sub(vt1$fips, 1, str_length(vt1$fips)-1)
 vt1$adi_natrank<-as.numeric(as.character(vt1$adi_natrank))
 vt1$adi_staternk<-as.numeric(as.character(vt1$adi_staternk))
@@ -66,25 +83,13 @@ vt_combo2<-aggregate(Product ~ variable, data = vt, FUN = sum) #Average ADI per 
 
 vt_combo2$Product/vt_combo$estimate #Total ADI, White ADI, Black ADI
 
-library(ggplot2)
-library(gridExtra)
-
-
-
-
 
 mean_black<-vt_combo2[vt_combo2$variable == "B02001_003", "Product"]/vt_combo[vt_combo$variable == "B02001_003", "estimate"]
 mean_white<-vt_combo2[vt_combo2$variable == "B02001_002", "Product"]/vt_combo[vt_combo$variable == "B02001_002", "estimate"]
 mean_total<-vt_combo2[vt_combo2$variable == "B02001_001", "Product"]/vt_combo[vt_combo$variable == "B02001_001", "estimate"]
 
 
-Get_SD<-function(RACE){
-  mean_black<-sum(vt[vt$variable == RACE, "Product"], na.rm = TRUE)/sum(vt[vt$variable == RACE, "estimate"], na.rm = TRUE)
-  Black<-vt[vt$variable == RACE, ]
-  Black$sdcalc<-(Black$ADI_NATRANK - mean_black)^2*Black$estimate
-  Black<-Black[is.na(Black$sdcalc) == FALSE,]
-  SDresult<-sqrt((sum(Black$sdcalc))/sum(Black$estimate))
-  return(SDresult)}
+
 
 sd_black<-Get_SD("B02001_003")
 sd_white<-Get_SD("B02001_002")
@@ -108,43 +113,11 @@ ggplot(data.estimates, aes(var, mean)) + geom_point(size = 7) + geom_errorbar(ae
   xlab("Demographic Group")
 
 
- # vt$variable<-as.factor(vt$variable)
- # plot<-vt[,c("variable", "estimate", "ADI_NATRANK")]
- # p1<-ggplot(plot[!(plot$variable == "B02001_001"),], aes(x = ADI_NATRANK, fill = variable)) +
- #   geom_histogram(alpha = 0.8,   stat = "identity") + theme(legend.position = "bottom") +
- #   xlab("Area Deprivation Index (ADI)\nLower values indicate higher socioeconomic status") + ylab("") +
- #   geom_vline(data=mean_total, aes(xintercept=mean_total),
- #              linetype="dashed")
- # 
- # p2<-ggplot(vt_combo[(vt_combo == "Black"),], aes(x = ADI_NATRANK, y = estimate, fill = variable)) +
- #   geom_histogram(alpha = 0.8,   stat = "identity") + theme(legend.position = "none") +
- #   xlab("ADI") + ylab("") +   geom_vline(data=mean_black, aes(xintercept=mean_black),
- #                                         linetype="dashed")
- # p3<-ggplot(vt_combo[(vt_combo == "White"),], aes(x = ADI_NATRANK, y = estimate, fill = variable )) +
- #   scale_fill_manual(values = "#00BFC4" ) +
- #   geom_histogram(alpha = 0.8,   stat = "identity") + theme(legend.position = "none") +
- #   xlab("ADI")+ylab("") +   geom_vline(data=mean_white, aes(xintercept=mean_white),
- #                                       linetype="dashed")
- # 
- # lay <- rbind(c(1,1),
- #              c(2, 3))
- # grid.arrange(p1, p2, p3, layout_matrix = lay)
-#This figure shows the spread of ADI for people living in the state of missouri
-#Looks like our AA's are pretty representative, but our caucasians are actually 
-#much more affluent than the typical caucasian in the state
-
-
 Black<-vt[vt$variable == "B02001_003",]
 White<-vt[vt$variable == "B02001_002",]
 
 Blackdf<-as.data.frame(matrix(0, ncol = 2, nrow = sum(Black$estimate)))
 Whitedf<-as.data.frame(matrix(0, ncol = 2, nrow = sum(White$estimate)))
-
-
-explode <- function(x, weight_var) {
-  w <- rlang::eval_tidy(rlang::enquo(weight_var), x)
-  x[rep(seq_len(nrow(x)), w), , drop = FALSE]
-}
 
 Blackdf<-explode(Black, estimate)
 Whitedf<-explode(White, estimate)
