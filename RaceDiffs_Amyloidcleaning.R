@@ -1,6 +1,8 @@
 #Doing Amyloid - first PIB, then AV45
 #PIB<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/DR14/HASD_ACS_DR14_PIB.csv")
 PIB<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/HASD_ACS_DR15_PIB.csv")
+PIB<-PIB[!(PIB$Project == "NP673" | PIB$Project == "NP801" | PIB$Project == "fACS"),] #Dropping people from inappropriate projects
+
 colnames(PIB)[5]<-"ID"
 demogs.pib<-demogs[demogs$ID %in% PIB$ID,]
 
@@ -26,6 +28,8 @@ PIB.once<-PIB.once[!is.na(PIB.once$race2),]
 #Repeat for AV45.  
 #AV45<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/DR14/HASD_ACS_DR14_AV45.csv")
 AV45<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/HASD_ACS_DR15_AV45.csv")
+AV45<-AV45[!(AV45$Project == "NP673" | AV45$Project == "NP801" | AV45$Project == "fACS"),] #Dropping people from inappropriate projects
+
 colnames(AV45)[5]<-"ID"
 AV45$PET_Date<-as.Date(AV45$PET_Date, format = "%m/%d/%Y")
 AV45<-AV45[,c("ID", "PET_Date", "AV45_fSUVR_rsf_TOT_CORTMEAN")]
