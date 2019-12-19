@@ -12,6 +12,8 @@ colnames(demogs)[6]<-"SES"
 #Getting MRI data
 #df.MRI<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/DR14/HASD_ACS_DR14_3TMR.csv")
 df.MRI<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/HASD_ACS_DR15_3TMR.csv")
+df.MRI<-df.MRI[!(df.MRI$Project == "NP673" | df.MRI$Project == "NP801" | df.MRI$Project == "fACS"),] #Dropping people from inappropriate projects
+
 colnames(df.MRI)[5]<-"ID" #Only for DF15
 IDs<-as.character(df.MRI[,"ID"])
 df.MRI<-df.MRI[df.MRI$FS_QC_Status == "Passed" | df.MRI$FS_QC_Status == "passed" | df.MRI$FS_QC_Status == "Passed with edits",]
@@ -82,6 +84,9 @@ df.clin<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/DR_clinical_20190122.csv"
 df.clin<-df.clin[,c("ID", "CDR", "TESTDATE", "BPSYS", "HEIGHT", "WEIGHT")]
 #df.WMH<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/DR14/HASD_ACS_DR14_WMH.csv")
 df.WMH<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/HASD_ACS_DR15_WMH.csv") #829 unique individuals with WMH
+df.WMH<-df.WMH[!(df.WMH$Project == "NP673" | df.WMH$Project == "NP801" | df.WMH$Project == "fACS"),] #Dropping people from inappropriate projects
+
+
 colnames(df.WMH)[5]<-"ID"
 df.WMH$MR_Date<-as.Date(df.WMH$MR_Date, format = "%m/%d/%Y")
 df.clin$TESTDATE<-as.Date(df.clin$TESTDATE, format = "%Y-%m-%d")
