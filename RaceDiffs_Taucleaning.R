@@ -1,5 +1,7 @@
 #tau<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/DR14/HASD_ACS_DR14_TAU.csv")
 tau<-read.csv("W:/ances/julie/Data/ADRC/Aggregated/HASD_ACS_DR15_TAU.csv")
+tau<-tau[!(tau$Project == "NP673" | tau$Project == "NP801" | tau$Project == "fACS"),] #Dropping people from inappropriate projects
+
 colnames(tau)[5]<-"ID"
 demogs.tau<-demogs[demogs$ID %in% tau$ID,]
 
